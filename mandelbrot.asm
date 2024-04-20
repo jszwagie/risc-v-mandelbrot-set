@@ -51,15 +51,20 @@ loop:
 	slli a1, a1, 21
 	call pixel_to_complex
 	call mandelbrot_set
-	slli s7, a0, 2
+	
 	# n % 256
+	mv s7, a0
 	andi s7, s7, 0xff
+	
+	
 	sb s7, (s3) # B
 	addi s3, s3, 1
-	srli s7, s7, 1
+	
+	
 	sb s7, (s3) # G
 	addi s3, s3, 1
-	srli s7, s7, 1
+	
+	slli s7, s7, 2
 	sb s7, (s3) # R
 	addi s3, s3, 1
 	
@@ -185,20 +190,22 @@ mandelbrot_set:
 	#while i<max iterations && zr*zr + zi*zi < 4
 loop_fn:
 	# setting new z
-	# zr*zr
+	# zr*zr in s4
 	mul t6, s1, s1
 	mulh t5, s1, s1
 	slli t5, t5, 11
 	srli t6, t6, 21
-	add t0, t6, t5
+	add s4, t6, t5
 	
-	#- zi*zi
+	# zi*zi in s5
 	mul t6, s2, s2
 	mulh t5, s2, s2
 	slli t5, t5, 11
 	srli t6, t6, 21
-	add t4, t6, t5
-	sub t0, t0, t4
+	add s5, t6, t5
+	
+	# -
+	sub t0, s4, s5
 	
 	# + cr
 	add t0, t0, t1
@@ -223,20 +230,9 @@ loop_fn:
 	
 	# second case
 	# zr*zr
-	mul t6, s1, s1
-	mulh t5, s1, s1
-	slli t5, t5, 11
-	srli t6, t6, 21
-	add t0, t6, t5
-	
 	# zi*zi
-	mul t6, s2, s2
-	mulh t5, s2, s2
-	slli t5, t5, 11
-	srli t6, t6, 21
-	add t4, t6, t5
 	# +
-	add t0, t0, t4
+	add t0, s4, s5
 	
 	ble t0, t3, loop_fn
 	
@@ -247,6 +243,6 @@ end_fn:
 	ret
 	
 mock_m:
-	li a0, 100
+	li a0, 50
 	ret
 		
