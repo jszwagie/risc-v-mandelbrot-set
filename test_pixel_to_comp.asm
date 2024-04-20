@@ -6,24 +6,6 @@ pic:	.space 921738
 	.text
 
 main:
-	# opening file, file hanlde in a0
-	li a7, 1024 
-	li a1, 0
-	la a0, path
-	ecall
-	# saving file handle
-	mv t0, a0 
-	
-	# reading file to buffer
-	li a7, 63 
-	li a2, 921738
-	la a1, pic
-	ecall
-	
-	# closing file
-	li a7, 57
-	mv a0, t0
-	ecall
 	
 	# we will use fixed-point arythmetics
 	# Values:
@@ -48,6 +30,16 @@ main:
 	# so with our data
 	# real_part = -2.0 + x*0,0046875
 	# imaginary_part = -(-1.5 + y*0,00625) = 1.5 - y*0,00625
+	li s11, 1342177280 # 640
+	mv a0, s11
+	li a1, 1006632960 # 480
+	call fn_map
+	
+	li a7, 1
+	ecall
+	mv a0, a1
+	ecall
+	b end
 
 	
 fn_map:
@@ -69,70 +61,31 @@ fn_map:
 	
 	# making real part 
 	
-	# now we test only r
 	
 	li a0, -4194304 # -2.0
 	li t6, 9830 # 0,0046875
 	mul t3, t1, t6
 	mulh t4, t1, t6
-	slli t3, t3, 11
-	srli t4, t4, 21
+	slli t4, t4, 11
+	srli t3, t3, 21
 	add t5, t3, t4
 	add a0, a0, t5
 	
+	#making imaginary part
+	
+	li a1, 3145728 # 1.5
+	li t6, 13107 # 0,00625
+	mul t3, t2, t6
+	mulh t4, t2, t6
+	slli t4, t4, 11
+	srli t3, t3, 21
+	add t5, t3, t4
+	sub a1, a1, t5
 	ret
-	
-	
-	
-	
-	# test reading and writing
-	
-	# loading addres of buffer
-	la s0, pic
-	
-	# skipping BMP header
-	addi s0, s0, 138
-	
-	# we must remember that the array is in big endian
-	
-	# test loop
-	li s11, 921600 #counter
-	li t6, 50 # color value to skip
-	
-loop:
-	lb t0, (s0)
-	beq t0, t6, next
-	li t0, 50
-	sb t0, (s0)
-	addi s0, s0, 3 # next pixel 24-bit RGB
-	addi s11, s11, -3
-	blez s11, end
-	b loop
-next:
-	addi s0, s0, 1
-	addi s11, s11, -1
-	blez s11, end	
-	b loop
-	
+		
+
 	
 end:
-	# open file again
-	li a7, 1024
-	la a0, path
-	li a1, 1
-	ecall
-	mv t0, a0
-	
-	# write buffer to file
-	li a7, 64
-	la a1, pic
-	li a2, 921738
-	ecall
-	
-	# close file
-	li a7, 57
-	mv a0, t0
-	ecall
 
 	# exit program
 	li a7, 10
