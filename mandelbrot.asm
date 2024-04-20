@@ -49,8 +49,7 @@ loop:
 	mv a1, s8
 	slli a0, a0, 21
 	slli a1, a1, 21
-	call pixel_to_complex
-	call mandelbrot_set
+	call pixel_to_mandel
 	
 	# n % 256
 	mv s7, a0
@@ -118,7 +117,7 @@ end:
 	
 	
 	
-pixel_to_complex:
+pixel_to_mandel:
 	# Example of mapping function in python
 	# def map_pixel_to_complex(x, y):
 	#     width = 640
@@ -175,9 +174,7 @@ pixel_to_complex:
 	sub a1, a1, t5
 	
 	# returning from function values in a0 and a1
-	ret
 	
-mandelbrot_set:
 	# function takes 2 arguments a0,a1 - realpart, imaginartypart
 	# max iterations = 255
 	li s11, 55 #max iterations
