@@ -1,5 +1,5 @@
 	.data
-path:	.asciz "fgh.bmp" # path to bmp file
+path:	.asciz "mandelbrot.bmp" # path to bmp file
 	.align 2
 pic:	.space 18
 str:	.asciz " "
@@ -150,6 +150,8 @@ loop:
 	blez s5, end
 	li a0, 0
 	sb a0, (t0)
+	sb a0, 1(t0)
+	sb a0, 2(t0)
 	addi s11, s11, -3
 	addi t0, t0, 3
 	addi s6, s6, -1

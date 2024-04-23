@@ -74,10 +74,7 @@ main:
 	# width here
 	
 	addi s3, s3, 4
-	lw a0, (s3)
-	mv s8, a0 # height here
-	li a7, 1
-	ecall
+	lw s5, (s3) # height here
 	
 	
 	# closing file
@@ -100,38 +97,40 @@ main:
 	mv s3, s2
 	add s3, s3, s4
 	addi s3, s3, -4
-	lw a0, (s3)
+	
+	# s10- width s5 - height
+	# s6 - t widrh,
+	mv s6, s10
+	
+	# register left: t0-t6, s7, s11, maybe s4
+	
+loop:
+	li a0, 640
+	li a1, 0
+	li a2, 640
+	li a3, 480
+	call pixel_to_mandel
 	
 	li a7, 1
 	ecall
 	
-	addi s11, s1, -18
-	sub s11, s11, s4 # lenght of array
-	
-	# s10- width s8 - height
-	# s6 - t widrh, s5 - t height
-	mv s6, s10
-	mv s5, s8
-	
-	
-	
-loop:
-	blez s5, end
-	li a0, 0
-	sb a0, (s3)
-	sb a0, 1(s3)
-	sb a0, 2(s3)
-	addi s11, s11, -3
-	addi s3, s3, 3
-	addi s6, s6, -1
-	bgtz s6, loop
-	# go to end of row
-	add s3, s3, s6
-	# add padding
-	add s3, s3, s9
-	mv s6, s10
-	addi s5, s5, -1
-	b loop
+	mv a0, a1
+	ecall
+#	blez s5, end
+#	li a0, 0
+#	sb a0, (s3)
+#	sb a0, 1(s3)
+#	sb a0, 2(s3) # tu do sprawdzenia warunki
+#	addi s3, s3, 3
+#	addi s6, s6, -1
+#	bgtz s6, loop
+#	# go to end of row
+#	add s3, s3, s6
+#	# add padding
+#	add s3, s3, s9
+#	mv s6, s10
+#	addi s5, s5, -1
+#	b loop
 	
 	
 end:
@@ -164,5 +163,76 @@ end:
 	# exit program
 	li a7, 10
 	ecall
-
+	
+pixel_to_mandel:
+	# Example of mapping function
+	# def map_pixel_to_complex(x, y):
+	#     width = 640
+	#     height = 480
+	#     min_real = -2.0
+	#     max_real = 1.0
+	#     min_imaginary = -1.5
+	#     max_imaginary = 1.5
+	#     range = max_real - min_real
+	#     real_part = min_real + 3.0 * x / width
+	#     range = max_imaginary - min_imaginary
+	#     imaginary_part = min_imaginary + 3.0 * y / height
+	
+	#     return real_part, imaginary_part
+	# so with our data
+	# real_part = -2.0 + 3.0 * x / width
+	# imaginary_part = -1.5 + 3.0 * y / height
+	# MinReal = -2.0, MaxReal = 1.0, MinImaginary = -1.5, MaxImaginary = 1.5
+	# we get arguments in a0-a7 registers	
+	
+	
+	
+	# initialize our constansts:
+	# -2.0
+	li t5, -2
+	slli t5, t5, 21
+	
+	# -1.5
+	li t6, -3
+	slli t6, t6, 20
+	
+	# X - a0
+	# Y - a1
+	# Width - a2
+	# Height - a3
+	
+	# making real part
+	
+	# x/width 
+	# first shift x
+	slli t1, a0, 21
+	# divide
+	div t1, t1, a2
+	
+	# * 3
+	mv t0, t1
+	slli t1, t1, 1
+	add t1, t1, t0
+	
+	# - 2 and save to result
+	add a0, t1, t5
+	
+	# making imaginary part
+	
+	# y/height
+	# first shift y
+	slli t1, a1, 21
+	# divide
+	div t1, t1, a3
+	
+	# * 3
+	mv t0, t1
+	srli t1, t1, 1
+	add t1, t1, t0
+	
+	# - 1.5 and save to result
+	add a1, t1, t6
+	
+	# returning from function values in a0 and a1
+	ret
 		
