@@ -49,8 +49,8 @@ loop:
 	mv a1, s8
 	slli a0, a0, 21
 	slli a1, a1, 21
-	call pixel_to_mandel
-	
+	# call pixel_to_mandel
+	li a0, 50
 	# n % 256
 	mv s7, a0
 	andi s7, s7, 0xff
