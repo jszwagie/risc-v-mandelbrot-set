@@ -1,5 +1,5 @@
 	.data
-path:	.asciz "test_3.bmp" # path to bmp file
+path:	.asciz "test_m_1.bmp" # path to bmp file
 	.align 2
 header:	.space 18
 str:	.asciz " "
@@ -74,7 +74,7 @@ main:
 	# width here
 	
 	addi s3, s3, 4
-	lw s5, (s3) # height here
+	lw s11, (s3) # height here
 	
 	
 	# closing file
@@ -98,39 +98,43 @@ main:
 	add s3, s3, s4
 	addi s3, s3, -4
 	
-	# s10- width s5 - height
-	# s6 - t widrh,
+	# s10- width s11 - height
+	# s6 - t widrh, s5 - t height
 	mv s6, s10
+	mv s5, s11
 	
-	# register left: t0-t6, s7, s11, maybe s4
+	# register left: t0-t6, s7, maybe s4
 	
 loop:
-	li a0, 640
-	li a1, 0
-	li a2, 640
-	li a3, 480
+	
+	# we map pixel
+	mv a0, s6
+	mv a1, s5
+	mv a2, s10
+	mv a3, s11
 	call pixel_to_mandel
 	
-	li a7, 1
-	ecall
+	# now we calculate if it is in mandel set
+	call in_mandel_set
+	# we set the new color of pixels
+	slli t0, a0, 2
+	andi t0, t0, 0xff # t0 % 256
 	
-	mv a0, a1
-	ecall
-#	blez s5, end
-#	li a0, 0
-#	sb a0, (s3)
-#	sb a0, 1(s3)
-#	sb a0, 2(s3) # tu do sprawdzenia warunki
-#	addi s3, s3, 3
-#	addi s6, s6, -1
-#	bgtz s6, loop
-#	# go to end of row
-#	add s3, s3, s6
-#	# add padding
-#	add s3, s3, s9
-#	mv s6, s10
-#	addi s5, s5, -1
-#	b loop
+	# and store it to memory
+	sb t0, (s3)
+	sb t0, 1(s3)
+	sb t0, 2(s3) 
+	
+	addi s3, s3, 3 # increment pixel number by 3
+	addi s6, s6, -1 # decrement width
+	bnez s6, loop
+	# we are at the end of row
+	# add padding
+	add s3, s3, s9
+	# set new width
+	mv s6, s10
+	addi s5, s5, -1 # decrement haight
+	bnez s5, loop
 	
 	
 end:
@@ -164,7 +168,7 @@ end:
 	li a7, 10
 	ecall
 	
-pixel_to_mandel:
+pixel_to_mandel: # nie dzia³a
 	# Example of mapping function
 	# def map_pixel_to_complex(x, y):
 	#     width = 640
@@ -227,7 +231,7 @@ pixel_to_mandel:
 	
 	# * 3
 	mv t0, t1
-	srli t1, t1, 1
+	slli t1, t1, 1
 	add t1, t1, t0
 	
 	# - 1.5 and save to result
@@ -235,4 +239,92 @@ pixel_to_mandel:
 	
 	# returning from function values in a0 and a1
 	ret
+
+	
+in_mandel_set:	
+	# function takes 2 arguments a0,a1 - realpart, imaginartypart
+	# we use s1, s2, s4, s5, s7, s11
+	# s7, s11, s4 - are free to use
+	# so s1, s2, s5 - should be saved
+	
+	# firse we save s1, s2, s5
+	
+	addi sp, sp, -16
+	sw s1, 0(sp) # trzeba przerzucic do maina
+	sw s2, 4(sp)
+	sw s5, 8(sp)
+	sw s11, 12(sp)
+	
+	
+	
+	li s11, 55 #max iterations
+	li s7, 0 # iterations
+	li s1, 0 # z_real
+	li s2, 0 # z_imaginary
+	mv t1, a0 # c_real
+	mv t2, a1 # c_imaginary
+	li t3, 4 
+	slli t3, t3, 21 # 4.0
+loop_fn:
+	# setting new z
+	# zr*zr in s4
+	mul t6, s1, s1
+	mulh t5, s1, s1
+	slli t5, t5, 11
+	srli t6, t6, 21
+	add s4, t6, t5
+	
+	# zi*zi in s5
+	mul t6, s2, s2
+	mulh t5, s2, s2
+	slli t5, t5, 11
+	srli t6, t6, 21
+	add s5, t6, t5
+	
+	# -
+	sub t0, s4, s5
+	
+	# + cr
+	add t0, t0, t1
+	
+	# zr*zi
+	mul t6, s2, s1
+	mulh t5, s2, s1
+	slli t5, t5, 11
+	srli t6, t6, 21
+	add t4, t6, t5
+	# *2
+	slli t4, t4, 1
+	# + ci = new zi
+	add s2, t4, t2
+	
+	#set zr
+	mv s1, t0
+	# increment iteration
+	addi s7, s7, 1
+	# first case
+	bge s7, s11, end_fn
+	
+	# second case
+	# zr*zr
+	# zi*zi
+	# +
+	add t0, s4, s5
+	
+	ble t0, t3, loop_fn
+	
+	
+	
+end_fn:
+	mv a0, s7
+	
+	# restoring registers
+	lw s1, 0(sp)
+	lw s2, 4(sp)
+	lw s5, 8(sp)
+	lw s11, 12(sp)
+	addi sp, sp, 16
+	
+	ret
+
 		
