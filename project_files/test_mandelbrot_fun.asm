@@ -1,6 +1,4 @@
-	.data
-path:	.asciz "mandelbrot.bmp" # path to bmp file
-		
+	
 	.globl main
 	.text
 
@@ -13,24 +11,26 @@ main:
 	# 01010000000.000000000000000000000 = 640
 	
 	# Example of mapping function in python
-# def map_pixel_to_complex(x, y):
-#     width = 640
-#     height = 480
-#     min_real = -2.0
-#     max_real = 1.0
-#     min_imaginary = -1.5
-#     max_imaginary = 1.5
-#     range = max_real - min_real
-#     real_part = min_real + 3.0 * x / 640
-#     range = max_imaginary - min_imaginary
-#     imaginary_part = -(min_imaginary + 3.0 * y / 480)
-
-#     return real_part, imaginary_part
+	# def map_pixel_to_complex(x, y):
+	#     width = 640
+	#     height = 480
+	#     min_real = -2.0
+	#     max_real = 1.0
+	#     min_imaginary = -1.5
+	#     max_imaginary = 1.5
+	#     range = max_real - min_real
+	#     real_part = min_real + 3.0 * x / 640
+	#     range = max_imaginary - min_imaginary
+	#     imaginary_part = -(min_imaginary + 3.0 * y / 480)
+	
+	#     return real_part, imaginary_part
 	# so with our data
 	# real_part = -2.0 + x*0,0046875
 	# imaginary_part = -(-1.5 + y*0,00625) = 1.5 - y*0,00625
-	li a0, -1048576 # real part
-	li a1, 0 # imaginary part
+	li a0, 1 # real part
+	li a1, -1 # imaginary part
+	slli a0, a0, 21
+	slli a1, a1, 20
 	call fn_mandel
 	
 	li a7, 1
@@ -51,20 +51,23 @@ fn_mandel:
 	#while i<max iterations && zr*zr + zi*zi < 4
 loop:
 	# setting new z
-	# zr*zr
+	# zr*zr in s5
 	mul t6, s1, s1
 	mulh t5, s1, s1
 	slli t5, t5, 11
 	srli t6, t6, 21
-	add t0, t6, t5
+	add s5, t6, t5
 	
-	#- zi*zi
+	# zi*zi in s6
 	mul t6, s2, s2
 	mulh t5, s2, s2
 	slli t5, t5, 11
 	srli t6, t6, 21
-	add t4, t6, t5
-	sub t0, t0, t4
+	add s6, t6, t5
+	
+	#-
+	mv t0, s5
+	sub t0, t0, s6
 	
 	# + cr
 	add t0, t0, t1
@@ -89,20 +92,9 @@ loop:
 	
 	# second case
 	# zr*zr
-	mul t6, s1, s1
-	mulh t5, s1, s1
-	slli t5, t5, 11
-	srli t6, t6, 21
-	add t0, t6, t5
-	
 	# zi*zi
-	mul t6, s2, s2
-	mulh t5, s2, s2
-	slli t5, t5, 11
-	srli t6, t6, 21
-	add t4, t6, t5
 	# +
-	add t0, t0, t4
+	add t0, s5, s6
 	
 	ble t0, t3, loop
 	

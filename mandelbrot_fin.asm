@@ -1,5 +1,5 @@
 	.data
-path:	.asciz "test_m_1.bmp" # path to bmp file
+path:	.asciz "test_m_4.bmp" # path to bmp file
 	.align 2
 header:	.space 18
 str:	.asciz " "
@@ -103,15 +103,25 @@ main:
 	mv s6, s10
 	mv s5, s11
 	
-	# register left: t0-t6, s7, maybe s4
+	
+	# we save important registers before loop and functions
+	# we are not doing it in functions to optimize speed
+	# we choose s1, s2 becouse they handle important information
+	# and are not in use in function
+	# register s0 is no longer needed - file closed
+	# registers s4, s7, s8 werent in use so there is no need to save them
+	
+	# saving
+	addi sp, sp, -8
+	sw s1, 0(sp)
+	sw s2, 4(sp)
 	
 loop:
-	
 	# we map pixel
-	mv a0, s6
-	mv a1, s5
-	mv a2, s10
-	mv a3, s11
+	mv a0, s6 # x
+	mv a1, s5 # y
+	mv a2, s10 # width
+	mv a3, s11 # height
 	call pixel_to_mandel
 	
 	# now we calculate if it is in mandel set
@@ -124,6 +134,10 @@ loop:
 	sb t0, (s3)
 	sb t0, 1(s3)
 	sb t0, 2(s3) 
+	# there is probably more optimal method to do that but it would be very hard to implement
+	# and would give inequivalent results
+	# for example: getting 12 bytes - 3 x word and analyze 4 pixels in one moment
+	# minus: needs a lot of cases, hard to implement
 	
 	addi s3, s3, 3 # increment pixel number by 3
 	addi s6, s6, -1 # decrement width
@@ -131,13 +145,18 @@ loop:
 	# we are at the end of row
 	# add padding
 	add s3, s3, s9
-	# set new width
+	# set new temporary width
 	mv s6, s10
 	addi s5, s5, -1 # decrement haight
 	bnez s5, loop
 	
 	
 end:
+	# restoring registers
+	lw s1, 0(sp)
+	lw s2, 4(sp)
+	addi sp, sp, 8
+	
 	# open file again
 	li a7, 1024
 	la a0, path
@@ -168,7 +187,7 @@ end:
 	li a7, 10
 	ecall
 	
-pixel_to_mandel: # nie dzia³a
+pixel_to_mandel:
 	# Example of mapping function
 	# def map_pixel_to_complex(x, y):
 	#     width = 640
@@ -189,7 +208,7 @@ pixel_to_mandel: # nie dzia³a
 	# MinReal = -2.0, MaxReal = 1.0, MinImaginary = -1.5, MaxImaginary = 1.5
 	# we get arguments in a0-a7 registers	
 	
-	
+	# we are using only temporary registers
 	
 	# initialize our constansts:
 	# -2.0
@@ -243,21 +262,12 @@ pixel_to_mandel: # nie dzia³a
 	
 in_mandel_set:	
 	# function takes 2 arguments a0,a1 - realpart, imaginartypart
-	# we use s1, s2, s4, s5, s7, s11
-	# s7, s11, s4 - are free to use
-	# so s1, s2, s5 - should be saved
+	# we use s0, s1, s2, s4, s7, s8 and temporaries
+	# s0, s4, s7, s8 - are free to use
+	# s1, s2 - are saved before the loop
+		
 	
-	# firse we save s1, s2, s5
-	
-	addi sp, sp, -16
-	sw s1, 0(sp) # trzeba przerzucic do maina
-	sw s2, 4(sp)
-	sw s5, 8(sp)
-	sw s11, 12(sp)
-	
-	
-	
-	li s11, 55 #max iterations
+	li s8, 55 #max iterations
 	li s7, 0 # iterations
 	li s1, 0 # z_real
 	li s2, 0 # z_imaginary
@@ -274,15 +284,15 @@ loop_fn:
 	srli t6, t6, 21
 	add s4, t6, t5
 	
-	# zi*zi in s5
+	# zi*zi in s0
 	mul t6, s2, s2
 	mulh t5, s2, s2
 	slli t5, t5, 11
 	srli t6, t6, 21
-	add s5, t6, t5
+	add s0, t6, t5
 	
 	# -
-	sub t0, s4, s5
+	sub t0, s4, s0
 	
 	# + cr
 	add t0, t0, t1
@@ -303,28 +313,20 @@ loop_fn:
 	# increment iteration
 	addi s7, s7, 1
 	# first case
-	bge s7, s11, end_fn
+	bge s7, s8, end_fn
 	
 	# second case
 	# zr*zr
 	# zi*zi
 	# +
-	add t0, s4, s5
-	
+	add t0, s4, s0
+	# < 4.0
 	ble t0, t3, loop_fn
 	
 	
 	
 end_fn:
 	mv a0, s7
-	
-	# restoring registers
-	lw s1, 0(sp)
-	lw s2, 4(sp)
-	lw s5, 8(sp)
-	lw s11, 12(sp)
-	addi sp, sp, 16
-	
 	ret
 
 		
